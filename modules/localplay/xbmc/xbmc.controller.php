@@ -313,6 +313,8 @@ class AmpacheXbmc extends localplay_controller
             // XBMC requires to load a playlist to play. We don't know if this play is after a new playlist or after pause
             // So we get current status
             $status = $this->status();
+            debug_event('xbmc', 'status previous to play: ' . print_r($status,true),1);
+            debug_event('xbmc', 'player/playlist IDs: ' . $this->_playerId . '/' . $this->_playlistId,1);
             if ($status['state'] == 'stop') {
                 $this->_xbmc->Player->Open(array(
                     'item' => array('playlistid' => $this->_playlistId))
@@ -613,27 +615,32 @@ class AmpacheXbmc extends localplay_controller
             $array['volume']    = intval($appprop['volume']);
 
             try {
-                $currentplay = $this->_xbmc->Player->GetItem(array(
-                    'playerid' => $this->_playerId,
-                    'properties' => array('file')
-                ));
-                // We assume it's playing. No pause detection support.
-                $array['state'] = 'play';
+                $stopStatus = $this->_xbmc->Player->GetActivePlayers();
+                if(empty($stopStatus))
+                    $array['state'] = 'stop';
+                else {
+                    $currentplay = $this->_xbmc->Player->GetItem(array(
+                        'playerid' => $this->_playerId,
+                        'properties' => array('file')
+                    ));
+                    // We assume it's playing. No pause detection support.
+                    $array['state'] = 'play';
 
-                $playprop = $this->_xbmc->Player->GetProperties(array(
-                    'playerid' => $this->_playerId,
-                    'properties' => array('repeat', 'shuffled')
-                ));
-                $array['repeat']    = ($playprop['repeat'] != "off");
-                $array['random']    = (strtolower($playprop['shuffled']) == 1) ;
-                $array['track']     =   $currentplay['file'];
+                    $playprop = $this->_xbmc->Player->GetProperties(array(
+                        'playerid' => $this->_playerId,
+                        'properties' => array('repeat', 'shuffled')
+                    ));
+                    $array['repeat']    = ($playprop['repeat'] != "off");
+                    $array['random']    = (strtolower($playprop['shuffled']) == 1) ;
+                    $array['track']     =   $currentplay['file'];
 
-                $url_data = $this->parse_url($array['track']);
-                $song     = new Song($url_data['oid']);
-                if ($song->title || $song->get_artist_name() || $song->get_album_name()) {
-                    $array['track_title']      = $song->title;
-                    $array['track_artist']     = $song->get_artist_name();
-                    $array['track_album']      = $song->get_album_name();
+                    $url_data = $this->parse_url($array['track']);
+                    $song = new Song($url_data['oid']);
+                    if ($song->title || $song->get_artist_name() || $song->get_album_name()) {
+                        $array['track_title']     = $song->title;
+                        $array['track_artist']     = $song->get_artist_name();
+                        $array['track_album']    = $song->get_album_name();
+                    }
                 }
             } catch (XBMC_RPC_Exception $ex) {
                 debug_event('xbmc', 'get current item failed, player probably stopped. ' . $ex->getMessage(), 1);
