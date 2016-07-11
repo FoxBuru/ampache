@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -64,22 +64,28 @@ class Upload
 
                     $targetdir = realpath($targetdir);
                     if (strpos($targetdir, $rootdir) === false) {
-                        debug_event('upload', 'Something wrong with final upload path.', '1');
+                        debug_event('upload', 'Something wrong with final upload path.', 1);
                         return self::rerror();
                     }
 
-                    $targetfile = $targetdir . DIRECTORY_SEPARATOR . time() . '_' . $_FILES['upl']['name'];
+                    $targetfile = $targetdir . DIRECTORY_SEPARATOR . $_FILES['upl']['name'];
                     if (Core::is_readable($targetfile)) {
-                        debug_event('upload', 'File `' . $targetfile . '` already exists.', '1');
-                        return self::rerror();
+                        debug_event('upload', 'File `' . $targetfile . '` already exists.', 3);
+                        $targetfile .= '_' . time();
+                        if (Core::is_readable($targetfile)) {
+                            debug_event('upload', 'File `' . $targetfile . '` already exists.', 1);
+                            return self::rerror();
+                        }
                     }
 
                     if (move_uploaded_file($_FILES['upl']['tmp_name'], $targetfile)) {
-                        debug_event('upload', 'File uploaded to `' . $targetfile . '`.', '5');
+                        debug_event('upload', 'File uploaded to `' . $targetfile . '`.', 5);
 
                         if (AmpConfig::get('upload_script')) {
                             chdir($targetdir);
-                            exec(AmpConfig::get('upload_script'));
+                            $script = AmpConfig::get('upload_script');
+                            $script = str_replace('%FILE%', $targetfile, $script);
+                            exec($script);
                         }
 
                         $options                = array();
@@ -155,8 +161,13 @@ class Upload
                         if ($album_id) {
                             $options['album_id'] = $album_id;
                         }
+                        if (AmpConfig::get('upload_catalog_pattern')) {
+                            $options['move_match_pattern'] = true;
+                        }
 
-                        $catalog->add_file($targetfile, $options);
+                        if (!$catalog->add_file($targetfile, $options)) {
+                            return self::rerror($targetfile);
+                        }
 
                         ob_get_contents();
                         ob_end_clean();
@@ -218,4 +229,3 @@ class Upload
         return $rootdir;
     }
 } // Upload class
-

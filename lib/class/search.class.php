@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -52,7 +52,7 @@ class Search extends playlist_object
                 $this->$key = $value;
             }
 
-            $this->rules = unserialize($this->rules);
+            $this->rules = json_decode($this->rules, true);
         }
 
         // Define our basetypes
@@ -250,6 +250,13 @@ class Search extends playlist_object
             $this->types[] = array(
                 'name'   => 'tag',
                 'label'  => T_('Tag'),
+                'type'   => 'text',
+                'widget' => array('input', 'text')
+            );
+
+            $this->types[] = array(
+                'name'   => 'album_tag',
+                'label'  => T_('Album tag'),
                 'type'   => 'text',
                 'widget' => array('input', 'text')
             );
@@ -856,7 +863,7 @@ class Search extends playlist_object
         }
 
         $sql = "INSERT INTO `search` (`name`, `type`, `user`, `rules`, `logic_operator`, `random`, `limit`) VALUES (?, ?, ?, ?, ?, ?, ?)";
-        Dba::write($sql, array($this->name, $this->type, $GLOBALS['user']->id, serialize($this->rules), $this->logic_operator, $this->random, $this->limit));
+        Dba::write($sql, array($this->name, $this->type, $GLOBALS['user']->id, json_encode($this->rules), $this->logic_operator, $this->random ? 1 : 0, $this->limit));
         $insert_id = Dba::insert_id();
         $this->id  = $insert_id;
         return $insert_id;
@@ -908,7 +915,7 @@ class Search extends playlist_object
         }
 
         $sql = "UPDATE `search` SET `name` = ?, `type` = ?, `rules` = ?, `logic_operator` = ?, `random` = ?, `limit` = ? WHERE `id` = ?";
-        Dba::write($sql, array($this->name, $this->type, serialize($this->rules), $this->logic_operator, $this->random, $this->limit, $this->id));
+        Dba::write($sql, array($this->name, $this->type, json_encode($this->rules), $this->logic_operator, $this->random, $this->limit, $this->id));
 
         return $this->id;
     }
@@ -1202,6 +1209,12 @@ class Search extends playlist_object
                     $where[]           = "`realtag_$key`.`match` > 0";
                     $join['tag'][$key] = "$sql_match_operator '$input'";
                 break;
+                case 'album_tag':
+                    $key                     = md5($input . $sql_match_operator);
+                    $where[]                 = "`realtag_$key`.`match` > 0";
+                    $join['album_tag'][$key] = "$sql_match_operator '$input'";
+                    $join['album']           = true;
+                break;
                 case 'title':
                     $where[] = "`song`.`title` $sql_match_operator '$input'";
                 break;
@@ -1318,16 +1331,31 @@ class Search extends playlist_object
         if ($join['song_data']) {
             $table['song_data'] = "LEFT JOIN `song_data` ON `song`.`id`=`song_data`.`song_id`";
         }
-        foreach ($join['tag'] as $key => $value) {
-            $table['tag_' . $key] =
-                "LEFT JOIN (" .
-                "SELECT `object_id`, COUNT(`name`) AS `match` " .
-                "FROM `tag` LEFT JOIN `tag_map` " .
-                "ON `tag`.`id`=`tag_map`.`tag_id` " .
-                "WHERE `tag_map`.`object_type`='song' " .
-                "AND `tag`.`name` $value GROUP BY `object_id`" .
-                ") AS realtag_$key " .
-                "ON `song`.`id`=`realtag_$key`.`object_id`";
+        if ($join['tag']) {
+            foreach ($join['tag'] as $key => $value) {
+                $table['tag_' . $key] =
+                    "LEFT JOIN (" .
+                    "SELECT `object_id`, COUNT(`name`) AS `match` " .
+                    "FROM `tag` LEFT JOIN `tag_map` " .
+                    "ON `tag`.`id`=`tag_map`.`tag_id` " .
+                    "WHERE `tag_map`.`object_type`='song' " .
+                    "AND `tag`.`name` $value GROUP BY `object_id`" .
+                    ") AS realtag_$key " .
+                    "ON `song`.`id`=`realtag_$key`.`object_id`";
+            }
+        }
+        if ($join['album_tag']) {
+            foreach ($join['album_tag'] as $key => $value) {
+                $table['tag_' . $key] =
+                    "LEFT JOIN (" .
+                    "SELECT `object_id`, COUNT(`name`) AS `match` " .
+                    "FROM `tag` LEFT JOIN `tag_map` " .
+                    "ON `tag`.`id`=`tag_map`.`tag_id` " .
+                    "WHERE `tag_map`.`object_type`='album' " .
+                    "AND `tag`.`name` $value  GROUP BY `object_id`" .
+                    ") AS realtag_$key " .
+                    "ON `album`.`id`=`realtag_$key`.`object_id`";
+            }
         }
         if ($join['rating']) {
             $userid          = $GLOBALS['user']->id;

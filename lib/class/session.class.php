@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -101,6 +101,7 @@ class Session
         // Destroy our cookie!
         setcookie($session_name, null, -1, $cookie_path, $cookie_domain, $cookie_secure);
         setcookie($session_name . '_user', null, -1, $cookie_path, $cookie_domain, $cookie_secure);
+        setcookie($session_name . '_lang', null, -1, $cookie_path, $cookie_domain, $cookie_secure);
 
         return true;
     }
@@ -457,6 +458,8 @@ class Session
      *
      * This function just creates the user cookie wich contains current username.
      * It must be used for information only.
+     *
+     * It also creates a cookie to store used language.
      */
     public static function create_user_cookie($username)
     {
@@ -467,6 +470,7 @@ class Session
         $cookie_secure = AmpConfig::get('cookie_secure');
 
         setcookie($session_name . '_user', $username, $cookie_life, $cookie_path, $cookie_domain, $cookie_secure);
+        setcookie($session_name . '_lang', AmpConfig::get('lang'), $cookie_life, $cookie_path, $cookie_domain, $cookie_secure);
     }
 
     /**

@@ -2,33 +2,50 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-
-$web_path = AmpConfig::get('web_path');
 ?>
+<?php if (Access::check('interface', '50')) {
+    ?>
+<?php UI::show_box_top(T_('Manage Radio Stations'),'info-box');
+    ?>
+<div id="information_actions">
+<ul>
+<li>
+    <a href="<?php echo AmpConfig::get('web_path');
+    ?>/radio.php?action=show_create"><?php echo UI::get_icon('add', T_('Add'));
+    ?> <?php echo T_('Add Radio Station');
+    ?></a>
+</li>
+</ul>
+</div>
+<?php UI::show_box_bottom();
+    ?>
+<?php 
+} ?>
 <?php if ($browse->get_show_header()) {
     require AmpConfig::get('prefix') . UI::find_template('list_header.inc.php');
 } ?>
-<table class="tabledata" cellpadding="0" cellspacing="0" data-objecttype="live_stream">
+<table class="tabledata <?php echo $browse->get_css_class() ?>" cellpadding="0" cellspacing="0" data-objecttype="live_stream">
     <thead>
         <tr class="th-top">
             <th class="cel_play essential"></th>
+            <th class="cel_cover optional"><?php echo T_('Art') ?></th>
             <th class="cel_streamname essential persist"><?php echo Ajax::text('?page=browse&action=set_sort&browse_id=' . $browse->id . '&sort=name', T_('Name'),'live_stream_sort_name'); ?></th>
             <th class="cel_streamurl optional"><?php echo T_('Stream URL'); ?></th>
             <th class="cel_codec optional"><?php echo Ajax::text('?page=browse&action=set_sort&browse_id=' . $browse->id . '&sort=codec', T_('Codec'),'live_stream_codec');  ?></th>
@@ -61,6 +78,7 @@ $web_path = AmpConfig::get('web_path');
     <tfoot>
         <tr class="th-bottom">
             <th class="cel_play"></th>
+            <th class="cel_cover"><?php echo T_('Art') ?></th>
             <th class="cel_streamname"><?php echo Ajax::text('?page=browse&action=set_sort&browse_id=' . $browse->id . '&sort=name', T_('Name'),'live_stream_sort_name'); ?></th>
             <th class="cel_streamurl"><?php echo T_('Stream URL'); ?></th>
             <th class="cel_codec"><?php echo Ajax::text('?page=browse&action=set_sort&browse_id=' . $browse->id . '&sort=codec', T_('Codec'),'live_stream_codec_bottom');  ?></th>

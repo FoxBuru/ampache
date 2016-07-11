@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -157,9 +157,38 @@ abstract class playlist_object extends database_object implements library_item
         return null;
     }
 
-    public function display_art($thumb = 2)
+    public function display_art($thumb = 2, $force = false)
     {
-        // no art
+        if (AmpConfig::get('playlist_art')) {
+            $medias     = $this->get_medias();
+            $media_arts = array();
+            foreach ($medias as $media) {
+                if (Core::is_library_item($media['object_type'])) {
+                    if (!Art::has_db($media['object_id'], $media['object_type'])) {
+                        $libitem = new $media['object_type']($media['object_id']);
+                        $parent  = $libitem->get_parent();
+                        if ($parent !== null) {
+                            $media = $parent;
+                        } elseif (!$force) {
+                            $media = null;
+                        }
+                    }
+
+                    if ($media !== null) {
+                        if (!in_array($media, $media_arts)) {
+                            $media_arts[] = $media;
+                            if (count($media_arts) >= 4) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            foreach ($media_arts as $media) {
+                Art::display($media['object_type'], $media['object_id'], $this->get_fullname(), $thumb, $this->link);
+            }
+        }
     }
 
     /**
@@ -173,4 +202,3 @@ abstract class playlist_object extends database_object implements library_item
         return array();
     }
 } // end playlist_object
-

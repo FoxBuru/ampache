@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -201,6 +201,32 @@ class Core
     } // form_verify
 
     /**
+     * gen_secure_token
+     *
+     * This generates a cryptographically secure token.
+     * Returns a token of the required bytes length, as a string. Returns false
+     * if it could not generate a cryptographically secure token.
+     */
+    public static function gen_secure_token($length)
+    {
+        $buffer = '';
+        if (function_exists('random_bytes')) {
+            $buffer = random_bytes($length);
+        } elseif (function_exists('mcrypt_create_iv')) {
+            $buffer = mcrypt_create_iv($length, MCRYPT_DEV_RANDOM);
+        } elseif (phpversion() > "5.6.12" && function_exists('openssl_random_pseudo_bytes')) {
+            // PHP version check for https://bugs.php.net/bug.php?id=70014
+            $buffer = openssl_random_pseudo_bytes($length);
+        } elseif (file_exists('/dev/random') && is_readable('/dev/random')) {
+            $buffer = file_get_contents('/dev/random', false, null, -1, $length);
+        } else {
+            return false;
+        }
+
+        return bin2hex($buffer);
+    }
+
+    /**
      * image_dimensions
     * This returns the dimensions of the passed song of the passed type
     * returns an empty array if PHP-GD is not currently installed, returns
@@ -209,6 +235,11 @@ class Core
     public static function image_dimensions($image_data)
     {
         if (!function_exists('ImageCreateFromString')) {
+            return false;
+        }
+
+        if (empty($image_data)) {
+            debug_event('Core', "Cannot create image from empty data", 2);
             return false;
         }
 
@@ -367,5 +398,28 @@ class Core
 
         return $options;
     }
+    
+    public static function get_tmp_dir()
+    {
+        $tmp_dir = AmpConfig::get('tmp_dir_path');
+        if (empty($store_path)) {
+            if (function_exists('sys_get_temp_dir')) {
+                $tmp_dir = sys_get_temp_dir();
+            } else {
+                if (strpos(PHP_OS, 'WIN') === 0) {
+                    $tmp_dir = $_ENV['TMP'];
+                    if (!isset($tmp_dir)) {
+                        $tmp_dir = 'C:\Windows\Temp';
+                    }
+                } else {
+                    $tmp_dir = @$_ENV['TMPDIR'];
+                    if (!isset($tmp_dir)) {
+                        $tmp_dir = '/tmp';
+                    }
+                }
+            }
+        }
+        
+        return $tmp_dir;
+    }
 } // Core
-

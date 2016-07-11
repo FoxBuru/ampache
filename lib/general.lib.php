@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -202,13 +202,13 @@ function get_languages()
                 case 'tr_TR'; $name = 'T&#252;rk&#231;e'; break; /* Turkish */
                 case 'uk_UA'; $name = 'Українська'; break; /* Ukrainian */
                 case 'vi_VN'; $name = 'Ti&#7871;ng Vi&#7879;t'; break; /* Vietnamese */
-                case 'zh_CN'; $name = '&#31616;&#20307;&#20013;&#25991;'; break; /* Chinese */
-                case 'zn_TW'; $name = '&#32321;&#39636;&#20013;&#25991;'; break; /* Chinese */
+                case 'zh_CN'; $name = '&#31616;&#20307;&#20013;&#25991;'; break; /* Chinese (simplified)*/
+                case 'zh_TW'; $name = '&#32321;&#39636;&#20013;&#25991;'; break; /* Chinese (traditional)*/
                 /* These languages are right to left. */
                 case 'ar_SA'; $name = '&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;&#1577;'; break; /* Arabic */
                 case 'he_IL'; $name = '&#1506;&#1489;&#1512;&#1497;&#1514;'; break; /* Hebrew */
                 case 'fa_IR'; $name = '&#1601;&#1575;&#1585;&#1587;&#1610;'; break; /* Farsi */
-                default: $name      = T_('Unknown'); break;
+                default: $name      = sprintf(T_('Unknown %s'), ' (' . $file . ')'); break;
             } // end switch
 
 
@@ -249,6 +249,7 @@ function translate_pattern_code($code)
             '%T'=>'track',
             '%t'=>'title',
             '%y'=>'year',
+            '%d'=>'disk',
             '%o'=>'zz_other');
 
     if (isset($code_array[$code])) {
@@ -285,6 +286,12 @@ function generate_config($current)
             // Put in the current value
             if ($key == 'config_version') {
                 $line = $key . ' = ' . escape_ini($value);
+            } elseif ($key == 'secret_key' && !isset($current[$key])) {
+                $secret_key = Core::gen_secure_token(31);
+                if ($secret_key !== false) {
+                    $line = $key . ' = "' . escape_ini($secret_key) . '"';
+                }
+                // Else, unable to generate a cryptographically secure token, use the default one
             } elseif (isset($current[$key])) {
                 $line = $key . ' = "' . escape_ini($current[$key]) . '"';
                 unset($current[$key]);

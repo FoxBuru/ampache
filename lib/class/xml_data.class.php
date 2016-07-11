@@ -2,22 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; version 2
- * of the License.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -106,8 +105,8 @@ class XML_Data
      */
     public static function error($code,$string)
     {
-        $string = self::_header() . "\t<error code=\"$code\"><![CDATA[$string]]></error>" . self::_footer();
-        return $string;
+        $string = "\t<error code=\"$code\"><![CDATA[$string]]></error>";
+        return self::output_xml($string);
     } // error
 
     /**
@@ -196,15 +195,15 @@ class XML_Data
      * This returns the formatted 'playlistTrack' string for an xml document
      *
      */
-    private static function playlist_song_tracks_string($song,$playlist_data)
+    private static function playlist_song_tracks_string($song, $playlist_data)
     {
-        if ($playlist_data == "") {
+        if (empty($playlist_data)) {
             return "";
         }
         $playlist_track = "";
-        foreach ($playlist as $playlist_data) {
-            if ($playlist_data["object_id"] == $song->id) {
-                return "\t<playlisttrack>" . $playlist_data["track"] . "</playlisttrack>\n";
+        foreach ($playlist_data as $playlist) {
+            if ($playlist["object_id"] == $song->id) {
+                return "\t<playlisttrack>" . $playlist["track"] . "</playlisttrack>\n";
             }
         }
         return "";
@@ -242,7 +241,7 @@ class XML_Data
         } // end foreach
 
         if (!$callback) {
-            $string = self::_header() . $string . self::_footer();
+            $string = self::output_xml($string);
         }
 
         return $string;
@@ -278,9 +277,7 @@ class XML_Data
                     "</tag>\n";
         } // end foreach
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // tags
 
     /**
@@ -324,9 +321,7 @@ class XML_Data
                     "</artist>\n";
         } // end foreach artists
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // artists
 
     /**
@@ -377,9 +372,7 @@ class XML_Data
                     "</album>\n";
         } // end foreach
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // albums
 
     /**
@@ -402,7 +395,7 @@ class XML_Data
         foreach ($playlists as $playlist_id) {
             $playlist = new Playlist($playlist_id);
             $playlist->format();
-            $item_total = $playlist->get_song_count();
+            $item_total = $playlist->get_media_count('song');
 
             // Build this element
             $string .= "<playlist id=\"$playlist->id\">\n" .
@@ -413,10 +406,7 @@ class XML_Data
                 "</playlist>\n";
         } // end foreach
 
-        // Build the final and then send her off
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // playlists
 
     /**
@@ -425,7 +415,7 @@ class XML_Data
      * This returns an xml document from an array of song ids.
      * (Spiffy isn't it!)
      */
-    public static function songs($songs,$playlist_data='')
+    public static function songs($songs, $playlist_data='')
     {
         if (count($songs) > self::$limit or self::$offset > 0) {
             $songs = array_slice($songs, self::$offset, self::$limit);
@@ -439,8 +429,8 @@ class XML_Data
         foreach ($songs as $song_id) {
             $song = new Song($song_id);
 
-            // If the song id is invalid/null or disabled
-            if (!$song->id || !$song->enabled) {
+            // If the song id is invalid/null
+            if (!$song->id) {
                 continue;
             }
 
@@ -482,7 +472,7 @@ class XML_Data
                 "\t<preciserating>" . ($rating->get_user_rating() ?: 0) . "</preciserating>\n" .
                 "\t<rating>" . ($rating->get_user_rating() ?: 0) . "</rating>\n" .
                 "\t<averagerating>" . ($rating->get_average_rating() ?: 0) . "</averagerating>\n" .
-                "\t<composer>" . $song->composer . "</composer>\n" .
+                "\t<composer><![CDATA[" . $song->composer . "]]></composer>\n" .
                 "\t<channels>" . $song->channels . "</channels>\n" .
                 "\t<comment><![CDATA[" . $song->comment . "]]></comment>\n";
 
@@ -499,7 +489,7 @@ class XML_Data
             $string .= "</song>\n";
         } // end foreach
 
-        return self::_header() . $string . self::_footer();
+        return self::output_xml($string);
     } // songs
 
     /**
@@ -531,9 +521,7 @@ class XML_Data
                     "</video>\n";
         } // end foreach
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // videos
 
     /**
@@ -589,9 +577,7 @@ class XML_Data
                     "</song>\n";
         } // end foreach
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // democratic
 
     /**
@@ -618,9 +604,7 @@ class XML_Data
         }
         $string .= "</user>\n";
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // user
 
     /**
@@ -640,9 +624,7 @@ class XML_Data
         }
         $string .= "</users>\n";
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // users
 
     /**
@@ -670,10 +652,13 @@ class XML_Data
         }
         $string .= "</shouts>\n";
 
-        $final = self::_header() . $string . self::_footer();
-
-        return $final;
+        return self::output_xml($string);
     } // shouts
+
+    public static function output_xml($string)
+    {
+        return self::_header() . UI::clean_utf8($string) . self::_footer();
+    }
 
     /**
      * timeline
@@ -720,17 +705,17 @@ class XML_Data
      *
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public static function rss_feed($data,$title,$description,$date)
+    public static function rss_feed($data, $title, $description, $date = null)
     {
         $string = "\t<title>$title</title>\n\t<link>" . AmpConfig::get('web_path') . "</link>\n\t";
         if ($date != null) {
-            $string .= "<pubDate>" . date("r",$date) . "</pubDate>\n";
+            $string .= "<pubDate>" . date("r", $date) . "</pubDate>\n";
         }
 
         // Pass it to the keyed array xml function
         foreach ($data as $item) {
             // We need to enclose it in an item tag
-            $string .= self::keyed_array(array('item'=>$item),1);
+            $string .= self::keyed_array(array('item'=>$item), 1);
         }
 
         $final = self::_header() . $string . self::_footer();
@@ -816,23 +801,24 @@ class XML_Data
 
     public static function podcast(library_item $libitem)
     {
-        $xml = new SimpleXMLElement('<rss />');
-        $xml->addAttribute("version", "2.0");
+        $xml = new SimpleXMLElement('<?xml version="1.0" encoding="utf-8"?><rss />');
         $xml->addAttribute("xmlns:xmlns:atom", "http://www.w3.org/2005/Atom");
         $xml->addAttribute("xmlns:xmlns:itunes", "http://www.itunes.com/dtds/podcast-1.0.dtd");
+        $xml->addAttribute("version", "2.0");
         $xchannel = $xml->addChild("channel");
         $xchannel->addChild("title", $libitem->get_fullname() . " Podcast");
-        $xlink = $xchannel->addChild("atom:link");
-        $xlink->addAttribute("type", "text/html");
-        $xlink->addAttribute("href", $libitem->link);
+        $xlink = $xchannel->addChild("atom:link", htmlentities($libitem->link));
         if (Art::has_db($libitem->id, get_class($libitem))) {
             $ximg = $xchannel->addChild("xmlns:itunes:image");
             $ximg->addAttribute("href", Art::url($libitem->id, get_class($libitem)));
         }
         $summary = $libitem->get_description();
         if (!empty($summary)) {
+            $summary = htmlentities($summary);
+            $xchannel->addChild("description", $summary);
             $xchannel->addChild("xmlns:itunes:summary", $summary);
         }
+        $xchannel->addChild("generator", "Ampache");
         $xchannel->addChild("xmlns:itunes:category", "Music");
         $owner = $libitem->get_user_owner();
         if ($owner) {
@@ -847,34 +833,37 @@ class XML_Data
             $media = new $media_info['object_type']($media_info['object_id']);
             $media->format();
             $xitem = $xchannel->addChild("item");
-            $xitem->addChild("title", $media->get_fullname());
+            $xitem->addChild("title", htmlentities($media->get_fullname()));
             if ($media->f_artist) {
                 $xitem->addChild("xmlns:itunes:author", $media->f_artist);
             }
-            $xmlink = $xitem->addChild("link");
-            $xmlink->addAttribute("href", $media->link);
-            $xitem->addChild("guid", $media->link);
+            $xmlink = $xitem->addChild("link", htmlentities($media->link));
+            $xitem->addChild("guid", htmlentities($media->link));
             if ($media->addition_time) {
                 $xitem->addChild("pubDate", date("r", $media->addition_time));
             }
             $description = $media->get_description();
             if (!empty($description)) {
-                $xitem->addChild("description", $description);
+                $xitem->addChild("description", htmlentities($description));
             }
             $xitem->addChild("xmlns:itunes:duration", $media->f_time);
-            $xencl = $xitem->addChild("enclosure");
-            $xencl->addAttribute("type", $media->mime);
-            $xencl->addAttribute("length", $media->size);
-            $surl = $media_info['object_type']::play_url($media_info['object_id']);
-            $xencl->addAttribute("url", $surl);
+            if ($media->mime) {
+                $surl  = $media_info['object_type']::play_url($media_info['object_id']);
+                $xencl = $xitem->addChild("enclosure");
+                $xencl->addAttribute("type", $media->mime);
+                $xencl->addAttribute("length", $media->size);
+                $xencl->addAttribute("url", $surl);
+            }
         }
 
         $xmlstr = $xml->asXml();
         // Format xml output
         $dom = new DOMDocument();
-        $dom->loadXML($xmlstr);
-        $dom->formatOutput = true;
-        return $dom->saveXML($dom->documentElement);
+        if ($dom->loadXML($xmlstr) !== false) {
+            $dom->formatOutput = true;
+            return $dom->saveXML();
+        } else {
+            return $xmlstr;
+        }
     }
 } // XML_Data
-

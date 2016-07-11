@@ -2,22 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; version 2
- * of the License.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -58,6 +57,11 @@ class Live_Stream extends database_object implements media, library_item
     public $catalog;
 
     /**
+     *  @var string $f_name
+     */
+    public $f_name;
+    
+    /**
      *  @var string $f_link
      */
     public $f_link;
@@ -96,8 +100,10 @@ class Live_Stream extends database_object implements media, library_item
     public function format($details = true)
     {
         // Default link used on the rightbar
-        $this->f_link         = "<a href=\"" . $this->url . "\">" . $this->name . "</a>";
-        $this->f_name_link    = "<a target=\"_blank\" href=\"" . $this->site_url . "\">" . $this->name . "</a>";
+        $this->f_name         = scrub_out($this->name);
+        $this->link           = AmpConfig::get('web_path') . '/radio.php?action=show&radio=' . scrub_out($this->id);
+        $this->f_link         = "<a href=\"" . $this->link . "\">" . $this->f_name . "</a>";
+        $this->f_name_link    = "<a target=\"_blank\" href=\"" . $this->site_url . "\">" . $this->f_name . "</a>";
         $this->f_url_link     = "<a target=\"_blank\" href=\"" . $this->url . "\">" . $this->url . "</a>";
 
         return true;
@@ -166,9 +172,9 @@ class Live_Stream extends database_object implements media, library_item
         return null;
     }
 
-    public function display_art($thumb = 2)
+    public function display_art($thumb = 2, $force = false)
     {
-        if (Art::has_db($this->id, 'live_stream')) {
+        if (Art::has_db($this->id, 'live_stream') || $force) {
             Art::display('live_stream', $this->id, $this->get_fullname(), $thumb, $this->link);
         }
     }
@@ -182,7 +188,7 @@ class Live_Stream extends database_object implements media, library_item
     public function update(array $data)
     {
         if (!$data['name']) {
-            Error::add('general', T_('Name Required'));
+            AmpError::add('general', T_('Name Required'));
         }
 
         $allowed_array = array('https','http','mms','mmsh','mmsu','mmst','rtsp','rtmp');
@@ -190,17 +196,17 @@ class Live_Stream extends database_object implements media, library_item
         $elements = explode(":",$data['url']);
 
         if (!in_array($elements['0'],$allowed_array)) {
-            Error::add('general', T_('Invalid URL must be mms:// , https:// or http://'));
+            AmpError::add('general', T_('Invalid URL must be mms:// , https:// or http://'));
         }
         
         if (!empty($data['site_url'])) {
             $elements = explode(":", $data['site_url']);
             if (!in_array($elements['0'], $allowed_array)) {
-                Error::add('site_url', T_('Invalid URL must be http:// or https://'));
+                AmpError::add('site_url', T_('Invalid URL must be http:// or https://'));
             }
         }
 
-        if (Error::occurred()) {
+        if (AmpError::occurred()) {
             return false;
         }
 
@@ -217,9 +223,12 @@ class Live_Stream extends database_object implements media, library_item
      */
     public static function create(array $data)
     {
-        // Make sure we've got a name
+        // Make sure we've got a name and codec
         if (!strlen($data['name'])) {
-            Error::add('name', T_('Name Required'));
+            AmpError::add('name', T_('Name Required'));
+        }
+        if (!strlen($data['codec'])) {
+            AmpError::add('codec', T_('Codec (eg. MP3, OGG...) Required'));
         }
 
         $allowed_array = array('https','http','mms','mmsh','mmsu','mmst','rtsp','rtmp');
@@ -227,23 +236,23 @@ class Live_Stream extends database_object implements media, library_item
         $elements = explode(":", $data['url']);
 
         if (!in_array($elements['0'], $allowed_array)) {
-            Error::add('url', T_('Invalid URL must be http:// or https://'));
+            AmpError::add('url', T_('Invalid URL must be http:// or https://'));
         }
         
         if (!empty($data['site_url'])) {
             $elements = explode(":", $data['site_url']);
             if (!in_array($elements['0'], $allowed_array)) {
-                Error::add('site_url', T_('Invalid URL must be http:// or https://'));
+                AmpError::add('site_url', T_('Invalid URL must be http:// or https://'));
             }
         }
 
         // Make sure it's a real catalog
         $catalog = Catalog::create_from_id($data['catalog']);
         if (!$catalog->name) {
-            Error::add('catalog', T_('Invalid Catalog'));
+            AmpError::add('catalog', T_('Invalid Catalog'));
         }
 
-        if (Error::occurred()) {
+        if (AmpError::occurred()) {
             return false;
         }
 
@@ -335,4 +344,3 @@ class Live_Stream extends database_object implements media, library_item
         // Do nothing
     }
 } //end of radio class
-

@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -33,6 +33,7 @@ class AmpacheCatalogFavorites
     // These are internal settings used by this class, run this->load to
     // fill them out
     private $maxitems;
+    private $gridview;
 
     /**
      * Constructor
@@ -55,8 +56,8 @@ class AmpacheCatalogFavorites
             return false;
         }
 
-        Preference::insert('catalogfav_max_items','Catalog favorites max items','5','25','integer','plugins');
-        Preference::insert('catalogfav_columns','Catalog favorites columns','1','25','integer','plugins');
+        Preference::insert('catalogfav_max_items','Catalog favorites max items','5','25','integer','plugins',$this->name);
+        Preference::insert('catalogfav_gridview','Catalog favorites grid view display','1','25','boolean','plugins',$this->name);
 
         return true;
     }
@@ -69,6 +70,7 @@ class AmpacheCatalogFavorites
     public function uninstall()
     {
         Preference::delete('catalogfav_max_items');
+        Preference::delete('catalogfav_gridview');
 
         return true;
     }
@@ -81,7 +83,7 @@ class AmpacheCatalogFavorites
     {
         $from_version = Plugin::get_plugin_version($this->name);
         if ($from_version < 2) {
-            Preference::insert('catalogfav_columns','Catalog favorites columns','1','25','integer','plugins');
+            Preference::insert('catalogfav_gridview','Catalog favorites grid view display','1','25','boolean','plugins');
         }
         return true;
     }
@@ -95,7 +97,13 @@ class AmpacheCatalogFavorites
         if (AmpConfig::get('userflags')) {
             $userflags = Userflag::get_latest(null, -1, $this->maxitems);
             $i         = 0;
-            echo '<div class="home_plugin"><table class="tabledata">';
+            echo '<div class="home_plugin">';
+            UI::show_box_top(T_('Highlight'));
+            echo '<table class="tabledata';
+            if (!$this->gridview) {
+                echo " disablegv";
+            }
+            echo '">';
             foreach ($userflags as $userflag) {
                 $item = new $userflag['type']($userflag['id']);
                 $item->format();
@@ -103,38 +111,46 @@ class AmpacheCatalogFavorites
                 $user->format();
                 
                 if ($item->id) {
-                    echo '<tr class="' . ((($i % 2) == 0) ? 'even' : 'odd') . '"><td>';
-                    echo '<div>';
-                    echo '<div style="float: left;">';
-                    echo '<span style="font-weight: bold;">' . $item->f_link . '</span> ';
-                    echo '<span style="margin-right: 10px;">';
-                    if (AmpConfig::get('directplay')) {
-                        echo Ajax::button('?page=stream&action=directplay&object_type=' . $userflag['type'] . '&object_id=' . $userflag['id'],'play', T_('Play'),'play_' . $userflag['type'] . '_' . $userflag['id']);
-                        if (Stream_Playlist::check_autoplay_append()) {
-                            echo Ajax::button('?page=stream&action=directplay&object_type=' . $userflag['type'] . '&object_id=' . $userflag['id'] . '&append=true','play_add', T_('Play last'),'addplay_' . $userflag['type'] . '_' . $userflag['id']);
+                    echo '<tr id="' . $userflag['type'] . '_' . $userflag['id'] . '" class="' . ((($i % 2) == 0) ? 'even' : 'odd') . ' libitem_menu">';
+                    echo '<td style="height: auto;">';
+                    if ($this->gridview) {
+                        echo '<span style="font-weight: bold;">' . $item->f_link . '</span> ';
+                        echo '<span style="margin-right: 10px;">';
+                        if (AmpConfig::get('directplay')) {
+                            echo Ajax::button('?page=stream&action=directplay&object_type=' . $userflag['type'] . '&object_id=' . $userflag['id'],'play', T_('Play'),'play_' . $userflag['type'] . '_' . $userflag['id']);
+                            if (Stream_Playlist::check_autoplay_append()) {
+                                echo Ajax::button('?page=stream&action=directplay&object_type=' . $userflag['type'] . '&object_id=' . $userflag['id'] . '&append=true','play_add', T_('Play last'),'addplay_' . $userflag['type'] . '_' . $userflag['id']);
+                            }
                         }
+                        echo Ajax::button('?action=basket&type=' . $userflag['type'] . '&id=' . $userflag['id'],'add', T_('Add to temporary playlist'),'play_full_' . $userflag['id']);
+                        echo '</span>';
                     }
-                    echo Ajax::button('?action=basket&type=' . $userflag['type'] . '&id=' . $userflag['id'],'add', T_('Add to temporary playlist'),'play_full_' . $userflag['id']);
-                    echo '</span>';
-                    echo '</div>';
-                    echo '<div style="float: right; opacity: 0.5;">' . T_('recommended by') . ' ' . $user->f_link . '</div>';
 
-                    echo '</div><br />';
-
-                    echo '<div style="margin-left: 30px;">';
                     echo '<div style="float: left; margin-right: 20px;">';
-                    $item->display_art(2);
+                    $thumb = ($this->gridview && UI::is_grid_view('album')) ? 2 : 11;
+                    $item->display_art($thumb, true);
                     echo '</div>';
-
+                    echo '</td>';
+                    
+                    if (!$this->gridview) {
+                        echo '<td>' . $item->f_link . '</td>';
+                    }
+                    
+                    echo '<td class="optional">';
                     echo '<div style="white-space: normal;">' . $item->get_description() . '</div>';
                     echo '</div>';
-
+                    if ($this->gridview) {
+                        echo '<div style="float: right; opacity: 0.5;">' . T_('recommended by') . ' ' . $user->f_link . '</div>';
+                        echo '</div><br />';
+                    }
                     echo '</td></tr>';
 
                     $i++;
                 }
             }
-            echo '</table></div>';
+            echo '</table>';
+            UI::show_box_bottom();
+            echo '</div>';
         }
     }
 
@@ -152,6 +168,7 @@ class AmpacheCatalogFavorites
         if ($this->maxitems < 1) {
             $this->maxitems = 5;
         }
+        $this->gridview = ($data['catalogfav_gridview'] == '1');
 
         return true;
     }

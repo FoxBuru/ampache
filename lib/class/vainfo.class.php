@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -76,7 +76,9 @@ class vainfo
         }
         $this->_pathinfo['extension'] = strtolower($this->_pathinfo['extension']);
 
-        if ($this->islocal) {
+        $enabled_sources = (array) $this->get_metadata_order();
+
+        if (in_array('getID3', $enabled_sources) && $this->islocal) {
             // Initialize getID3 engine
             $this->_getID3 = new getID3();
 
@@ -206,7 +208,9 @@ class vainfo
             return true;
         }
 
-        if ($this->islocal) {
+        $enabled_sources = (array) $this->get_metadata_order();
+
+        if (in_array('getID3', $enabled_sources) && $this->islocal) {
             try {
                 $this->_raw = $this->_getID3->analyze(Core::conv_lc_file($this->filename));
             } catch (Exception $error) {
@@ -216,8 +220,6 @@ class vainfo
 
         /* Figure out what type of file we are dealing with */
         $this->type = $this->_get_type();
-
-        $enabled_sources = (array) $this->get_metadata_order();
 
         if (in_array('filename', $enabled_sources)) {
             $this->tags['filename'] = $this->_parse_filename($this->filename);
@@ -411,15 +413,18 @@ class vainfo
             $info['tvshow_episode'] = $info['tvshow_episode'] ?: trim($tags['tvshow_episode']);
             $info['release_date']   = $info['release_date'] ?: trim($tags['release_date']);
             $info['summary']        = $info['summary'] ?: trim($tags['summary']);
+            $info['tvshow_summary'] = $info['tvshow_summary'] ?: trim($tags['tvshow_summary']);
             
             $info['tvshow_art']        = $info['tvshow_art'] ?: trim($tags['tvshow_art']);
             $info['tvshow_season_art'] = $info['tvshow_season_art'] ?: trim($tags['tvshow_season_art']);
             $info['art']               = $info['art'] ?: trim($tags['art']);
             
-            // Add rest of the tags without typecast to the array
-            foreach ($tags as $tag => $value) {
-                if (!isset($info[$tag])) {
-                    $info[$tag] = trim($value);
+            if (AmpConfig::get('enable_custom_metadata') && is_array($tags)) {
+                // Add rest of the tags without typecast to the array
+                foreach ($tags as $tag => $value) {
+                    if (!isset($info[$tag]) && !is_array($value)) {
+                        $info[$tag] = (!is_array($value)) ? trim($value) : $value;
+                    }
                 }
             }
         }
@@ -612,8 +617,13 @@ class vainfo
     private function _parse_general($tags)
     {
         $parsed = array();
+        
+        if ((in_array('movie', $this->gather_types)) || (in_array('tvshow', $this->gather_types))) {
+            $parsed['title'] = $this->formatVideoName(urldecode($this->_pathinfo['filename']));
+        } else {
+            $parsed['title'] = urldecode($this->_pathinfo['filename']);
+        }
 
-        $parsed['title'] = urldecode($this->_pathinfo['filename']);
         $parsed['mode']  = $tags['audio']['bitrate_mode'];
         if ($parsed['mode'] == 'con') {
             $parsed['mode'] = 'cbr';
@@ -928,6 +938,7 @@ class vainfo
                 }
             }
         }
+        
 
         return $parsed;
     }
@@ -985,7 +996,7 @@ class vainfo
                     $parsed['mb_artistid'] = $data[0];
                 break;
                 case 'MusicBrainz Album Type':
-                    $parsed['release_type'] = $data[0];
+                $parsed['release_type'] = $data[0];
                 break;
                 case 'track_number':
                     $parsed['track'] = $data[0];
@@ -1031,27 +1042,22 @@ class vainfo
     {
         $origin  = $filepath;
         $results = array();
-        $season  = array();
-        $episode = array();
-        $tvyear  = array();
-        $temp    = array();
-        if (strpos($filepath, '/') !== false) {
-            $slash_type      = '~/~';
-            $slash_type_preg = trim($slash_type,"~");
-        } else {
-            $slash_type      = "~\\~";
-            $slash_type_preg = trim($slash_type,"~") . trim($slash_type,"~");
-        }
-        $file = pathinfo($filepath,PATHINFO_FILENAME);
-        preg_match("~(?<=\(\[\<\{)[1|2][0-9]{3}|[1|2][0-9]{3}~", $filepath,$tvyear);
-        $results['year'] = !empty($tvyear) ? intval($tvyear[0]) : null;
+        $file    = pathinfo($filepath, PATHINFO_FILENAME);
+        
         if (in_array('tvshow', $this->gather_types)) {
+            $season  = array();
+            $episode = array();
+            $tvyear  = array();
+            $temp    = array();
+            preg_match("~(?<=\(\[\<\{)[1|2][0-9]{3}|[1|2][0-9]{3}~", $filepath,$tvyear);
+            $results['year'] = !empty($tvyear) ? intval($tvyear[0]) : null;
+        
             if (preg_match("~[Ss](\d+)[Ee](\d+)~", $file, $seasonEpisode)) {
                 $temp = preg_split("~(((\.|_|\s)[Ss]\d+(\.|_)*[Ee]\d+))~",$file,2);
                 preg_match("~(?<=[Ss])\d+~", $file, $season);
                 preg_match("~(?<=[Ee])\d+~", $file, $episode);
             } else {
-                if (preg_match("~[\.\s\-\_](\d)[xX](\d{1,2})~", $file, $seasonEpisode)) {
+                if (preg_match("~[\_\-\.\s](\d{1,2})[xX](\d{1,2})~", $file, $seasonEpisode)) {
                     $temp = preg_split("~[\.\_\s\-\_]\d+[xX]\d{2}[\.\s\-\_]*|$~",$file);
                     preg_match("~\d+(?=[Xx])~", $file, $season);
                     preg_match("~(?<=[Xx])\d+~", $file, $episode);
@@ -1064,11 +1070,16 @@ class vainfo
                         if (preg_match("~[\_\-\.\s](\d)(\d\d)[\_\-\.\s]*~", $file, $seasonEpisode)) {
                             $temp       = preg_split("~[\.\s\-\_](\d)(\d\d)[\.\s\-\_]~",$file);
                             $season[0]  = $seasonEpisode[1];
-                            $episode[0] = $seasonEpisode[2];
+                            if (preg_match("~[\_\-\.\s](\d)(\d\d)[\_\-\.\s]~", $file, $seasonEpisode)) {
+                                $temp       = preg_split("~[\.\s\-\_](\d)(\d\d)[\.\s\-\_]~",$file);
+                                $season[0]  = $seasonEpisode[1];
+                                $episode[0] = $seasonEpisode[2];
+                            }
                         }
                     }
                 }
             }
+    
             $results['tvshow_season']  = $season[0];
             $results['tvshow_episode'] = $episode[0];
             $results['tvshow']         = $this->formatVideoName($temp[0]);
@@ -1076,7 +1087,7 @@ class vainfo
 
             // Try to identify the show information from parent folder
             if (!$results['tvshow']) {
-                $folders = preg_split($slash_type, $filepath, -1, PREG_SPLIT_NO_EMPTY);
+                $folders = preg_split("~" . DIRECTORY_SEPARATOR . "~", $filepath, -1, PREG_SPLIT_NO_EMPTY);
                 if ($results['tvshow_season'] && $results['tvshow_episode']) {
                     // We have season and episode, we assume parent folder is the tvshow name
                     $filetitle         = end($folders);
@@ -1096,7 +1107,7 @@ class vainfo
                                     $results['original_name']  = $this->formatVideoName($matches[2]);
                                 } else {
                                     //Fallback to match any 3-digit Season/Episode that fails the standard pattern above.
-                                    preg_match("~(\d)(\d\d)[\_\-\.\s]*~", $file, $matches);
+                                    preg_match("~(\d)(\d\d)[\_\-\.\s]?~", $file, $matches);
                                     $results['tvshow_episode'] = $matches[2];
                                 }
                             }
@@ -1113,50 +1124,62 @@ class vainfo
         }
         
         if (in_array('music', $this->gather_types) || in_array('clip', $this->gather_types)) {
-            // Combine the patterns
-            $pattern = preg_quote($this->_dir_pattern) . $slash_type_preg . preg_quote($this->_file_pattern);
-            
-            // Remove first left directories from filename to match pattern
-            $cntslash = substr_count($pattern, preg_quote($slash_type)) + 1;
-            $filepart = explode($slash_type, $filepath);
-            if (count($filepart) > $cntslash) {
-                $filepath = implode($slash_type, array_slice($filepart, count($filepart) - $cntslash));
-            }
-            
-            // Pull out the pattern codes into an array
-            preg_match_all('/\%\w/', $pattern, $elements);
-            
-            // Mangle the pattern by turning the codes into regex captures
-            $pattern = preg_replace('/\%[Ty]/', '([0-9]+?)', $pattern);
-            $pattern = preg_replace('/\%\w/', '(.+?)', $pattern);
-            $pattern = str_replace('/', '\/', $pattern);
-            $pattern = str_replace(' ', '\s', $pattern);
-            $pattern = '/' . $pattern . '\..+$/';
-            
-            // Pull out our actual matches
-            preg_match($pattern, $filepath, $matches);
-            if ($matches != null) {
-                // The first element is the full match text
-                $matched = array_shift($matches);
-                debug_event('vainfo', $pattern . ' matched ' . $matched . ' on ' . $filepath, 5);
-            
-                // Iterate over what we found
-                foreach ($matches as $key => $value) {
-                    $new_key = translate_pattern_code($elements['0'][$key]);
-                    if ($new_key) {
-                        $results[$new_key] = $value;
-                    }
-                }
-
-                $results['title'] = $results['title'] ?: basename($filepath);
-                if ($this->islocal) {
-                    $results['size'] = Core::get_filesize(Core::conv_lc_file($origin));
-                }
+            $patres  = vainfo::parse_pattern($filepath, $this->_dir_pattern, $this->_file_pattern);
+            $results = array_merge($results, $patres);
+            if ($this->islocal) {
+                $results['size'] = Core::get_filesize(Core::conv_lc_file($origin));
             }
         }
         return $results;
     }
-   
+    
+    public static function parse_pattern($filepath, $dir_pattern, $file_pattern)
+    {
+        $results         = array();
+        $slash_type_preg = DIRECTORY_SEPARATOR;
+        if ($slash_type_preg == '\\') {
+            $slash_type_preg .= DIRECTORY_SEPARATOR;
+        }
+        // Combine the patterns
+        $pattern = preg_quote($dir_pattern) . $slash_type_preg . preg_quote($file_pattern);
+
+        // Remove first left directories from filename to match pattern
+        $cntslash = substr_count($pattern, preg_quote(DIRECTORY_SEPARATOR)) + 1;
+        $filepart = explode(DIRECTORY_SEPARATOR, $filepath);
+        if (count($filepart) > $cntslash) {
+            $filepath = implode(DIRECTORY_SEPARATOR, array_slice($filepart, count($filepart) - $cntslash));
+        }
+
+        // Pull out the pattern codes into an array
+        preg_match_all('/\%\w/', $pattern, $elements);
+
+        // Mangle the pattern by turning the codes into regex captures
+        $pattern = preg_replace('/\%[Ty]/', '([0-9]+?)', $pattern);
+        $pattern = preg_replace('/\%\w/', '(.+?)', $pattern);
+        $pattern = str_replace('/', '\/', $pattern);
+        $pattern = str_replace(' ', '\s', $pattern);
+        $pattern = '/' . $pattern . '\..+$/';
+
+        // Pull out our actual matches
+        preg_match($pattern, $filepath, $matches);
+        if ($matches != null) {
+            // The first element is the full match text
+            $matched = array_shift($matches);
+            debug_event('vainfo', $pattern . ' matched ' . $matched . ' on ' . $filepath, 5);
+
+            // Iterate over what we found
+            foreach ($matches as $key => $value) {
+                $new_key = translate_pattern_code($elements['0'][$key]);
+                if ($new_key) {
+                    $results[$new_key] = $value;
+                }
+            }
+
+            $results['title'] = $results['title'] ?: basename($filepath);
+        }
+        return $results;
+    }
+    
     private function removeCommonAbbreviations($name)
     {
         $abbr         = explode(",",AmpConfig::get('common_abbr'));
@@ -1227,4 +1250,3 @@ class vainfo
         return $data;
     }
 } // end class vainfo
-

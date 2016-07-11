@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -43,13 +43,15 @@ if ($directplay_limit > 0) {
 <div class="item_right_info">
     <div class="external_links">
         <a href="http://www.google.com/search?q=%22<?php echo rawurlencode($album->f_artist); ?>%22+%22<?php echo rawurlencode($album->f_name); ?>%22" target="_blank"><?php echo UI::get_icon('google', T_('Search on Google ...')); ?></a>
+        <a href="https://www.duckduckgo.com/s?q=%22<?php echo rawurlencode($label->f_name); ?>%22" target="_blank"><?php echo UI::get_icon('duckduckgo', T_('Search on DuckDuckGo ...')); ?></a>
         <a href="http://en.wikipedia.org/wiki/Special:Search?search=%22<?php echo rawurlencode($album->f_name); ?>%22&go=Go" target="_blank"><?php echo UI::get_icon('wikipedia', T_('Search on Wikipedia ...')); ?></a>
         <a href="http://www.last.fm/search?q=%22<?php echo rawurlencode($album->f_artist); ?>%22+%22<?php echo rawurlencode($album->f_name); ?>%22&type=album" target="_blank"><?php echo UI::get_icon('lastfm', T_('Search on Last.fm ...')); ?></a>
     </div>
     <?php
     if ($album->name != T_('Unknown (Orphaned)')) {
-        $name = '[' . $album->f_artist . '] ' . scrub_out($album->full_name);
-        Art::display('album', $album->id, $name, 2);
+        $name  = '[' . $album->f_artist . '] ' . scrub_out($album->full_name);
+        $thumb = UI::is_grid_view('album') ? 2 : 11;
+        Art::display('album', $album->id, $name, $thumb);
     }
     ?>
 </div>
@@ -148,10 +150,7 @@ if ($directplay_limit > 0) {
     ?>
             <?php if (AmpConfig::get('sociable')) {
     ?>
-                <a href="<?php echo AmpConfig::get('web_path');
-    ?>/shout.php?action=show_add_shout&type=album&id=<?php echo $c_album->id;
-    ?>"><?php echo UI::get_icon('comment', T_('Post Shout'));
-    ?></a>
+                <a href="<?php echo AmpConfig::get('web_path') ?>/shout.php?action=show_add_shout&type=album&id=<?php echo $c_album->id ?>"><?php echo UI::get_icon('comment', T_('Post Shout')) ?></a>
             <?php 
 }
     ?>
@@ -176,18 +175,12 @@ if ($directplay_limit > 0) {
         ?>
         <?php if (Access::check('interface','50')) {
     ?>
-            <a onclick="submitNewItemsOrder('<?php echo $c_album->id;
-    ?>', 'reorder_songs_table_<?php echo $c_album->id;
-    ?>', 'song_',
-                                            '<?php echo AmpConfig::get('web_path');
-    ?>/albums.php?action=set_track_numbers', 'refresh_album_songs')">
+            <a onclick="submitNewItemsOrder('<?php echo $c_album->id ?>', 'reorder_songs_table_<?php echo $c_album->id ?>', 'song_',
+                                            '<?php echo AmpConfig::get('web_path') ?>/albums.php?action=set_track_numbers', 'refresh_album_songs')">
                 <?php echo UI::get_icon('save', T_('Save Tracks Order'));
     ?>
             </a>
-            <a href="javascript:NavigateTo('<?php echo $web_path;
-    ?>/albums.php?action=update_from_tags&amp;album_id=<?php echo $c_album->id;
-    ?>');" onclick="return confirm('<?php echo T_('Do you really want to update from tags?');
-    ?>');">
+            <a href="javascript:NavigateTo('<?php echo $web_path ?>/albums.php?action=update_from_tags&amp;album_id=<?php echo $c_album->id ?>');" onclick="return confirm('<?php echo T_('Do you really want to update from tags?') ?>');">
                 <?php echo UI::get_icon('file_refresh', T_('Update from tags'));
     ?>
             </a>

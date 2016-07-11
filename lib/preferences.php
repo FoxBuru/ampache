@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -199,6 +199,11 @@ function create_preference_input($name,$value)
         case 'upload_allow_remove':
         case 'webdav_backend':
         case 'notify_email':
+        case 'libitem_contextmenu':
+        case 'upload_catalog_pattern':
+        case 'catalogfav_gridview':
+        case 'browse_filter':
+        case 'sidebar_light':
             $is_true  = '';
             $is_false = '';
             if ($value == '1') {
@@ -239,7 +244,7 @@ function create_preference_input($name,$value)
             if (AmpConfig::get('allow_localplay_playback')) {
                 echo "\t<option value=\"localplay\" $is_localplay>" . T_('Localplay') . "</option>\n";
             }
-            echo "\t<option value=\"web_player\" $is_web_player>" . _('Web Player') . "</option>\n";
+            echo "\t<option value=\"web_player\" $is_web_player>" . T_('Web Player') . "</option>\n";
             echo "</select>\n";
         break;
         case 'playlist_type':
@@ -383,7 +388,7 @@ function create_preference_input($name,$value)
         case 'disabled_custom_metadata_fields':
             $ids             = explode(',', $value);
             $options         = array();
-            $fieldRepository = new \lib\Metadata\Repository\MetadataField();
+            $fieldRepository = new \Lib\Metadata\Repository\MetadataField();
             foreach ($fieldRepository->findAll() as $field) {
                 $selected  = in_array($field->getId(), $ids) ? ' selected="selected"' : '';
                 $options[] = '<option value="' . $field->getId() . '"' . $selected . '>' . $field->getName() . '</option>';
@@ -398,7 +403,7 @@ function create_preference_input($name,$value)
             $url         = $plugin->_plugin->url;
             $api_key     = rawurlencode(AmpConfig::get('lastfm_api_key'));
             $callback    = rawurlencode(AmpConfig::get('web_path') . '/preferences.php?tab=plugins&action=grant&plugin=' . $plugin_name);
-            echo "<a href='$url/api/auth/?api_key=$api_key&cb=$callback'>" . UI::get_icon('plugin', T_("Click for grant Ampache to ") . $plugin_name) . '</a>';
+            echo "<a href='$url/api/auth/?api_key=$api_key&cb=$callback'>" . UI::get_icon('plugin', sprintf(T_("Click to grant %s access to Ampache"), $plugin_name)) . '</a>';
         break;
         default:
             if (preg_match('/_pass$/', $name)) {
@@ -410,4 +415,3 @@ function create_preference_input($name,$value)
 
     }
 } // create_preference_input
-

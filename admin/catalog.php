@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -122,12 +122,12 @@ switch ($_REQUEST['action']) {
             foreach ($songs as $song_id) {
                 Song::update_enabled(true, $song_id);
             }
-            $body = count($songs) . ngettext(' Song Enabled', ' Songs Enabled', count($songs));
+            $body = count($songs) . nT_(' Song Enabled', ' Songs Enabled', count($songs));
         } else {
             $body = T_('No Disabled Songs selected');
         }
         $url      = AmpConfig::get('web_path') . '/admin/catalog.php';
-        $title    = count($songs) . ngettext(' Disabled Song Processed', ' Disabled Songs Processed', count($songs));
+        $title    = count($songs) . nT_(' Disabled Song Processed', ' Disabled Songs Processed', count($songs));
         show_confirmation($title,$body,$url);
     break;
     case 'clean_all_catalogs':
@@ -169,11 +169,11 @@ switch ($_REQUEST['action']) {
         ob_end_flush();
 
         if (!strlen($_POST['type']) || $_POST['type'] == 'none') {
-            Error::add('general', T_('Error: Please select a catalog type'));
+            AmpError::add('general', T_('Error: Please select a catalog type'));
         }
 
         if (!strlen($_POST['name'])) {
-            Error::add('general', T_('Error: Name not specified'));
+            AmpError::add('general', T_('Error: Name not specified'));
         }
 
         if (!Core::form_verify('add_catalog','post')) {
@@ -182,7 +182,7 @@ switch ($_REQUEST['action']) {
         }
 
         // If an error hasn't occured
-        if (!Error::occurred()) {
+        if (!AmpError::occurred()) {
             $catalog_id = Catalog::create($_POST);
 
             if (!$catalog_id) {

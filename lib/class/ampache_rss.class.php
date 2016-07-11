@@ -2,22 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; version 2
- * of the License.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -69,12 +68,12 @@ class Ampache_RSS
 
             $data     = call_user_func(array('Ampache_RSS',$data_function));
             $pub_date = null;
-            if (method_exists('Ampache_RSS', $data_function)) {
-                $pub_date = call_user_func(array('Ampache_RSS',$pub_date_function));
+            if (method_exists('Ampache_RSS', $pub_date_function)) {
+                $pub_date = call_user_func(array('Ampache_RSS', $pub_date_function));
             }
 
             XML_Data::set_type('rss');
-            $xml_document = XML_Data::rss_feed($data,$this->get_title(),$this->get_description(),$pub_date);
+            $xml_document = XML_Data::rss_feed($data, $this->get_title(), $this->get_description(), $pub_date);
 
             return $xml_document;
         }
@@ -379,4 +378,3 @@ class Ampache_RSS
         return $element['date'];
     } // pubdate_recently_played
 } // end Ampache_RSS class
-

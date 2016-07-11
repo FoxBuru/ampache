@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -85,7 +85,7 @@ class Waveform
                     $valid_types   = $song->get_stream_types();
 
                     if ($song->type != $transcode_to) {
-                        $basedir = AmpConfig::get('tmp_dir_path');
+                        $basedir = Core::get_tmp_dir();
                         if ($basedir) {
                             if ($transcode_cfg != 'never' && in_array('transcode', $valid_types)) {
                                 $tmpfile = tempnam($basedir, $transcode_to);
@@ -170,6 +170,12 @@ class Waveform
     protected static function create_waveform($filename)
     {
         if (!file_exists($filename)) {
+            debug_event('waveform', 'File ' . $filename . ' doesn\'t exists', 1);
+            return null;
+        }
+        
+        if (!check_php_gd()) {
+            debug_event('waveform', 'GD extension must be loaded', 1);
             return null;
         }
 
@@ -218,6 +224,10 @@ class Waveform
         // each waveform to be processed with be $height high, but will be condensed
         // and resized later (if specified)
         $img = imagecreatetruecolor($data_size / $detail, $height);
+        if ($img === false) {
+            debug_event('waveform', 'Cannot create image.', 1);
+            return null;
+        }
 
         // fill background of image
         if ($background == "") {
@@ -325,4 +335,3 @@ class Waveform
         return Dba::write($sql, array($waveform, $song_id));
     }
 } // Waveform class
-

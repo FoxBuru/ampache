@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
 */
 
@@ -107,6 +107,9 @@ class Api
             case 'exact_match':
                 self::$browse->set_filter('exact_match',$value);
             break;
+            case 'enabled':
+                self::$browse->set_filter('enabled',$value);
+            break;
             default:
                 // Rien a faire
             break;
@@ -132,7 +135,13 @@ class Api
         }
         $username = trim($input['user']);
         $ip       = $_SERVER['REMOTE_ADDR'];
-        $version  = $input['version'];
+        if (isset($input['version'])) {
+            // If version is provided, use it
+            $version = $input['version'];
+        } else {
+            // Else, just use the latest version available
+            $version = self::$version;
+        }
 
         // Log the attempt
         debug_event('API', "Handshake Attempt, IP:$ip User:$username Version:$version", 5);
@@ -140,7 +149,7 @@ class Api
         // Version check shouldn't be soo restrictive... only check with initial version to not break clients compatibility
         if (intval($version) < self::$auth_version) {
             debug_event('API', 'Login Failed: version too old', 1);
-            Error::add('api', T_('Login Failed: version too old'));
+            AmpError::add('api', T_('Login Failed: version too old'));
             return false;
         }
 
@@ -168,7 +177,7 @@ class Api
                 if (($timestamp < (time() - 1800)) ||
                     ($timestamp > (time() + 1800))) {
                     debug_event('API', 'Login Failed: timestamp out of range ' . $timestamp . '/' . time(), 1);
-                    Error::add('api', T_('Login Failed: timestamp out of range'));
+                    AmpError::add('api', T_('Login Failed: timestamp out of range'));
                     echo XML_Data::error('401', T_('Error Invalid Handshake - ') . T_('Login Failed: timestamp out of range'));
                     return false;
                 }
@@ -180,7 +189,7 @@ class Api
 
                 if (!$realpwd) {
                     debug_event('API', 'Unable to find user with userid of ' . $user_id, 1);
-                    Error::add('api', T_('Invalid Username/Password'));
+                    AmpError::add('api', T_('Invalid Username/Password'));
                     echo XML_Data::error('401', T_('Error Invalid Handshake - ') . T_('Invalid Username/Password'));
                     return false;
                 }
@@ -223,12 +232,17 @@ class Api
                 $row        = Dba::fetch_assoc($db_results);
 
                 // Now we need to quickly get the song totals
-                $sql = 'SELECT COUNT(`id`) AS `song`, ' .
-                    'COUNT(DISTINCT(`album`)) AS `album`, ' .
-                    'COUNT(DISTINCT(`artist`)) AS `artist` ' .
-                    'FROM `song`';
+                $sql        = "SELECT COUNT(`id`) AS `song` FROM `song` WHERE `song`.`enabled`='1'";
                 $db_results = Dba::read($sql);
-                $counts     = Dba::fetch_assoc($db_results);
+                $song       = Dba::fetch_assoc($db_results);
+
+                $sql        = "SELECT COUNT(`id`) AS `album` FROM `album`";
+                $db_results = Dba::read($sql);
+                $album      = Dba::fetch_assoc($db_results);
+
+                $sql        = "SELECT COUNT(`id`) AS `artist` FROM `artist`";
+                $db_results = Dba::read($sql);
+                $artist     = Dba::fetch_assoc($db_results);
 
                 // Next the video counts
                 $sql        = "SELECT COUNT(`id`) AS `video` FROM `video`";
@@ -249,9 +263,9 @@ class Api
                     'update'=>date("c",$row['update']),
                     'add'=>date("c",$row['add']),
                     'clean'=>date("c",$row['clean']),
-                    'songs'=>$counts['song'],
-                    'albums'=>$counts['album'],
-                    'artists'=>$counts['artist'],
+                    'songs'=>$song['song'],
+                    'albums'=>$album['album'],
+                    'artists'=>$artist['artist'],
                     'playlists'=>$playlist['playlist'],
                     'videos'=>$vcounts['video'],
                     'catalogs'=>$catalog['catalog']));
@@ -515,6 +529,8 @@ class Api
         Api::set_filter($method,$input['filter']);
         Api::set_filter('add',$input['add']);
         Api::set_filter('update',$input['update']);
+        // Filter out disabled songs
+        Api::set_filter('enabled','1');
 
         $songs = self::$browse->get_objects();
 
@@ -1110,4 +1126,3 @@ class Api
         }
     } // friends_timeline
 } // API class
-

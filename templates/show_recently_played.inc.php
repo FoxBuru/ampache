@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -70,28 +70,28 @@ foreach ($data as $row) {
         $interval = intval(time() - $row['date']);
 
         if ($interval < 60) {
-            $time_string = sprintf(ngettext('%d second ago', '%d seconds ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d second ago', '%d seconds ago', $interval), $interval);
         } elseif ($interval < 3600) {
             $interval    = floor($interval / 60);
-            $time_string = sprintf(ngettext('%d minute ago', '%d minutes ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d minute ago', '%d minutes ago', $interval), $interval);
         } elseif ($interval < 86400) {
             $interval    = floor($interval / 3600);
-            $time_string = sprintf(ngettext('%d hour ago', '%d hours ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d hour ago', '%d hours ago', $interval), $interval);
         } elseif ($interval < 604800) {
             $interval    = floor($interval / 86400);
-            $time_string = sprintf(ngettext('%d day ago', '%d days ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d day ago', '%d days ago', $interval), $interval);
         } elseif ($interval < 2592000) {
             $interval    = floor($interval / 604800);
-            $time_string = sprintf(ngettext('%d week ago', '%d weeks ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d week ago', '%d weeks ago', $interval), $interval);
         } elseif ($interval < 31556926) {
             $interval    = floor($interval / 2592000);
-            $time_string = sprintf(ngettext('%d month ago', '%d months ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d month ago', '%d months ago', $interval), $interval);
         } elseif ($interval < 631138519) {
             $interval    = floor($interval / 31556926);
-            $time_string = sprintf(ngettext('%d year ago', '%d years ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d year ago', '%d years ago', $interval), $interval);
         } else {
             $interval    = floor($interval / 315569260);
-            $time_string = sprintf(ngettext('%d decade ago', '%d decades ago', $interval), $interval);
+            $time_string = sprintf(nT_('%d decade ago', '%d decades ago', $interval), $interval);
         }
     }
     $song->format();

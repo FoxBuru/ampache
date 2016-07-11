@@ -5,22 +5,25 @@
  * This contains functions that are generic, and display information
  * things like a confirmation box, etc and so forth
  *
+ */
+ 
+/**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,9 +52,9 @@ function show_confirmation($title,$text,$next_url,$cancel=0,$form_name='confirma
 function catalog_worker($action, $catalogs = null, $options = null)
 {
     if (AmpConfig::get('ajax_load')) {
-        $sse_url = AmpConfig::get('web_path') . "/server/sse.server.php?worker=catalog&action=" . $action . "&catalogs=" . urlencode(serialize($catalogs));
+        $sse_url = AmpConfig::get('web_path') . "/server/sse.server.php?worker=catalog&action=" . $action . "&catalogs=" . urlencode(json_encode($catalogs));
         if ($options) {
-            $sse_url .= "&options=" . urlencode(serialize($_POST));
+            $sse_url .= "&options=" . urlencode(json_encode($_POST));
         }
         sse_worker($sse_url);
     } else {
@@ -395,12 +398,18 @@ function show_tvshow_season_select($name='tvshow_season', $season_id, $allow_add
  * Yet another one of these buggers. this shows a drop down of all of your
  * catalogs.
  */
-function show_catalog_select($name='catalog',$catalog_id=0,$style='', $allow_none=false)
+function show_catalog_select($name='catalog', $catalog_id=0, $style='', $allow_none=false, $filter_type='')
 {
     echo "<select name=\"$name\" style=\"$style\">\n";
 
-    $sql        = "SELECT `id`, `name` FROM `catalog` ORDER BY `name`";
-    $db_results = Dba::read($sql);
+    $params     = array();
+    $sql        = "SELECT `id`, `name` FROM `catalog` ";
+    if (!empty($filter_type)) {
+        $sql   .= "WHERE `gather_types` = ?";
+        $params[] = $filter_type;
+    }
+    $sql       .= "ORDER BY `name`";
+    $db_results = Dba::read($sql, $params);
 
     if ($allow_none) {
         echo "\t<option value=\"-1\">" . T_('None') . "</option>\n";
@@ -437,7 +446,7 @@ function show_license_select($name='license',$license_id=0,$song_id=0)
     // Added ID field so we can easily observe this element
     echo "<select name=\"$name\" id=\"$key\">\n";
 
-    $sql        = "SELECT `id`, `name` FROM `license` ORDER BY `name`";
+    $sql        = "SELECT `id`, `name`, `description`, `external_link` FROM `license` ORDER BY `name`";
     $db_results = Dba::read($sql);
 
     while ($r = Dba::fetch_assoc($db_results)) {
@@ -446,10 +455,18 @@ function show_license_select($name='license',$license_id=0,$song_id=0)
             $selected = "selected=\"selected\"";
         }
 
-        echo "\t<option value=\"" . $r['id'] . "\" $selected>" . $r['name'] . "</option>\n";
+        echo "\t<option value=\"" . $r['id'] . "\" $selected";
+        if (!empty($r['description'])) {
+            echo " title=\"" . addslashes($r['description']) . "\"";
+        }
+        if (!empty($r['external_link'])) {
+            echo " data-link=\"" . $r['external_link'] . "\"";
+        }
+        echo ">" . $r['name'] . "</option>\n";
     } // end while
 
     echo "</select>\n";
+    echo "<a href=\"javascript:show_selected_license_link('" . $key . "');\">" . T_('View License') . "</a>";
 } // show_license_select
 
 /**
@@ -696,7 +713,7 @@ function toggle_visible($element)
 function display_notification($message, $timeout = 5000)
 {
     echo "<script type='text/javascript'>";
-    echo "displayNotification('" . json_encode($message) . "', " . $timeout . ");";
+    echo "displayNotification('" . addslashes(json_encode($message, JSON_UNESCAPED_UNICODE)) . "', " . $timeout . ");";
     echo "</script>\n";
 }
 

@@ -2,39 +2,64 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+
 ?>
-<?php if (Access::check('interface', '50')) {
+
+<?php UI::show_box_top($radio->f_name . ' ' . T_('Details'), 'box box_live_stream_details'); ?>
+<div class="item_right_info">
+    <?php
+        $thumb = UI::is_grid_view('live_stream') ? 2 : 11;
+        Art::display('live_stream', $radio->id, $radio->f_name, $thumb);
     ?>
-<?php UI::show_box_top(T_('Manage Radio Stations'),'info-box');
-    ?>
-<div id="information_actions">
-<ul>
-<li>
-    <a href="<?php echo AmpConfig::get('web_path');
-    ?>/radio.php?action=show_create"><?php echo UI::get_icon('add', T_('Add'));
-    ?> <?php echo T_('Add Radio Station');
-    ?></a>
-</li>
-</ul>
 </div>
-<?php UI::show_box_bottom();
+<dl class="media_details">
+<?php $rowparity = UI::flip_class(); ?>
+<dt class="<?php echo $rowparity; ?>"><?php echo T_('Action'); ?></dt>
+    <dd class="<?php echo $rowparity; ?>">
+        <?php if (AmpConfig::get('directplay')) {
     ?>
-<?php 
+            <?php echo Ajax::button('?page=stream&action=directplay&object_type=live_stream&object_id=' . $radio->id, 'play', T_('Play'),'play_live_stream_' . $radio->id);
+    ?>
+            <?php if (Stream_Playlist::check_autoplay_append()) {
+    ?>
+                <?php echo Ajax::button('?page=stream&action=directplay&object_type=live_stream&object_id=' . $radio->id . '&append=true','play_add', T_('Play last'),'addplay_live_stream_' . $radio->id);
+    ?>
+            <?php 
+}
+    ?>
+        <?php 
 } ?>
+        <?php echo Ajax::button('?action=basket&type=live_stream&id=' . $radio->id,'add', T_('Add to temporary playlist'),'add_live_stream_' . $radio->id); ?>
+    </dd>
+<?php
+    $itemprops[gettext_noop('Name')]     = $radio->f_name;
+    $itemprops[gettext_noop('Website')]  = scrub_out($radio->site_url);
+    $itemprops[gettext_noop('Stream')]   = $radio->f_url_link;
+    $itemprops[gettext_noop('Codec')]    = scrub_out($video->codec);
+  
+    foreach ($itemprops as $key => $value) {
+        if (trim($value)) {
+            $rowparity = UI::flip_class();
+            echo "<dt class=\"" . $rowparity . "\">" . T_($key) . "</dt><dd class=\"" . $rowparity . "\">" . $value . "</dd>";
+        }
+    }
+?>
+</dl>
+<?php UI::show_box_bottom(); ?>

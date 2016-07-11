@@ -1,14 +1,12 @@
 <?php
 if ($iframed || $is_share) {
     ?>
-<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black-iframed.css');
-    ?>" type="text/css" />
+<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black-iframed.css') ?>" type="text/css" />
 <?php
 
 } else {
     ?>
-<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black.css');
-    ?>" type="text/css" />
+<link rel="stylesheet" href="<?php echo AmpConfig::get('web_path') . UI::find_template('jplayer.midnight.black.css') ?>" type="text/css" />
 <?php
 
 }
@@ -72,6 +70,7 @@ function convertMediaToJPMedia(media)
     jpmedia['artist_id'] = media['artist_id'];
     jpmedia['album_id'] = media['album_id'];
     jpmedia['media_id'] = media['media_id'];
+    jpmedia['media_type'] = media['media_type'];
     jpmedia['replaygain_track_gain'] = media['replaygain_track_gain'];
     jpmedia['replaygain_track_peak'] = media['replaygain_track_peak'];
     jpmedia['replaygain_album_gain'] = media['replaygain_album_gain'];
@@ -97,6 +96,7 @@ function ExitPlayer()
 {
     $("#webplayer").text('');
     $("#webplayer").hide();
+    $("#webplayer-minimize").hide();
 
 <?php
 if (AmpConfig::get('song_page_title')) {
@@ -104,6 +104,28 @@ if (AmpConfig::get('song_page_title')) {
 }
 ?>
     document.onbeforeunload = null;
+}
+
+function TogglePlayerVisibility()
+{
+    if ($("#webplayer").is(":visible")) {
+        $("#webplayer").slideUp();
+    } else {
+        $("#webplayer").slideDown();
+    }
+}
+
+function TogglePlaylistExpand()
+{
+    if ($(".jp-playlist").css("opacity") !== '1') {
+        $(".jp-playlist").css('top', '-255%');
+        $(".jp-playlist").css('opacity', '1');
+        $(".jp-playlist").css('height', '350%');
+    } else {
+        $(".jp-playlist").css('top', '0px');
+        $(".jp-playlist").css('opacity', '0.9');
+        $(".jp-playlist").css('height', '95%');
+    }
 }
 </script>
 <?php
@@ -208,6 +230,7 @@ function ShowVisualizer()
             vizPrevPlayerColor = $('#webplayer').css('background-color');
             $('#webplayer').css('cssText', 'background-color: #000 !important;');
             $('#webplayer').show();
+            $("#webplayer-minimize").show();
             $('.jp-interface').css('background-color', '#000');
             $('.jp-playlist').css('background-color', '#000');
         } else {
@@ -248,21 +271,24 @@ function ShowEqualizer()
 
 function SavePlaylist()
 {
-    var url = "<?php echo AmpConfig::get('ajax_url');
-    ?>?page=playlist&action=append_item&item_type=song&item_id=";
-    for (var i = 0; i < jplaylist['playlist'].length; i++) {
-        url += "," + jplaylist['playlist'][i]["media_id"];
+    if (jplaylist['playlist'].length > 0) {
+        var url = "<?php echo AmpConfig::get('ajax_url') ?>?page=playlist&action=append_item&item_type=" + jplaylist['playlist'][0]["media_type"] + "&item_id=";
+        for (var i = 0; i < jplaylist['playlist'].length; i++) {
+            url += "," + jplaylist['playlist'][i]["media_id"];
+        }
+        handlePlaylistAction(url, 'rb_append_dplaylist_new');
     }
-    handlePlaylistAction(url, 'rb_append_dplaylist_new');
 }
 
 function SaveToExistingPlaylist(event)
 {
-    var item_ids = "";
-    for (var i = 0; i < jplaylist['playlist'].length; i++) {
-        item_ids += "," + jplaylist['playlist'][i]["media_id"];
+    if (jplaylist['playlist'].length > 0) {
+        var item_ids = "";
+        for (var i = 0; i < jplaylist['playlist'].length; i++) {
+            item_ids += "," + jplaylist['playlist'][i]["media_id"];
+        }
+        showPlaylistDialog(event, jplaylist['playlist'][0]["media_type"], item_ids);
     }
-    showPlaylistDialog(event, 'song', item_ids);
 }
 
 var audioContext = null;

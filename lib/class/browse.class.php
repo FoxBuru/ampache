@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -49,6 +49,7 @@ class Browse extends Query
         if (!$id) {
             $this->set_use_pages(true);
             $this->set_use_alpha(false);
+            $this->set_grid_view(true);
         }
         $this->show_header = true;
     }
@@ -227,7 +228,6 @@ class Browse extends Query
                 $box_req = AmpConfig::get('prefix') . UI::find_template('show_artists.inc.php');
             break;
             case 'live_stream':
-                require_once AmpConfig::get('prefix') . UI::find_template('show_live_stream.inc.php');
                 $box_title = T_('Radio Stations') . $match;
                 $box_req   = AmpConfig::get('prefix') . UI::find_template('show_live_streams.inc.php');
             break;
@@ -236,9 +236,9 @@ class Browse extends Query
                 $box_title = T_('Playlists') . $match;
                 $box_req   = AmpConfig::get('prefix') . UI::find_template('show_playlists.inc.php');
             break;
-            case 'playlist_song':
-                $box_title = T_('Playlist Songs') . $match;
-                $box_req   = AmpConfig::get('prefix') . UI::find_template('show_playlist_songs.inc.php');
+            case 'playlist_media':
+                $box_title = T_('Playlist Medias') . $match;
+                $box_req   = AmpConfig::get('prefix') . UI::find_template('show_playlist_medias.inc.php');
             break;
             case 'playlist_localplay':
                 $box_title = T_('Current Playlist');
@@ -332,6 +332,14 @@ class Browse extends Query
                 $box_title = T_('Private Messages');
                 $box_req   = AmpConfig::get('prefix') . UI::find_template('show_pvmsgs.inc.php');
             break;
+            case 'podcast':
+                $box_title = T_('Podcasts');
+                $box_req   = AmpConfig::get('prefix') . UI::find_template('show_podcasts.inc.php');
+            break;
+            case 'podcast_episode':
+                $box_title  = T_('Podcast Episodes');
+                $box_req    = AmpConfig::get('prefix') . UI::find_template('show_podcast_episodes.inc.php');
+            break;
             default:
                 // Rien a faire
             break;
@@ -415,13 +423,15 @@ class Browse extends Query
         $cn = 'browse_' . $type . '_alpha';
         if (isset($_COOKIE[$cn])) {
             $this->set_use_alpha($_COOKIE[$cn] == 'true');
-            if ($this->get_use_alpha()) {
-                if (count($this->_state['filter']) == 0) {
-                    $this->set_filter('regex_match', '^A');
-                }
-            } else {
-                $this->set_filter('regex_not_match', '');
+        } else {
+            $default_alpha = explode(",", AmpConfig::get('libitem_browse_alpha'));
+            if (in_array($type, $default_alpha)) {
+                $this->set_use_alpha(true, false);
             }
+        }
+        $cn = 'browse_' . $type . '_grid_view';
+        if (isset($_COOKIE[$cn])) {
+            $this->set_grid_view($_COOKIE[$cn] == 'true');
         }
 
         parent::set_type($type, $custom_base);
@@ -443,9 +453,11 @@ class Browse extends Query
      *
      * @param boolean $use_pages
      */
-    public function set_use_pages($use_pages)
+    public function set_use_pages($use_pages, $savecookie = true)
     {
-        $this->save_cookie_params('pages', $use_pages ? 'true' : 'false');
+        if ($savecookie) {
+            $this->save_cookie_params('pages', $use_pages ? 'true' : 'false');
+        }
         $this->_state['use_pages'] = $use_pages;
     }
 
@@ -457,15 +469,46 @@ class Browse extends Query
     {
         return $this->_state['use_pages'];
     }
+    
+    /**
+     *
+     * @param boolean $grid_view
+     */
+    public function set_grid_view($grid_view, $savecookie = true)
+    {
+        if ($savecookie) {
+            $this->save_cookie_params('grid_view', $grid_view ? 'true' : 'false');
+        }
+        $this->_state['grid_view'] = $grid_view;
+    }
+    
+    /**
+     *
+     * @return boolean
+     */
+    public function get_grid_view()
+    {
+        return $this->_state['grid_view'];
+    }
 
     /**
      *
      * @param boolean $use_alpha
      */
-    public function set_use_alpha($use_alpha)
+    public function set_use_alpha($use_alpha, $savecookie = true)
     {
-        $this->save_cookie_params('alpha', $use_alpha ? 'true' : 'false');
+        if ($savecookie) {
+            $this->save_cookie_params('alpha', $use_alpha ? 'true' : 'false');
+        }
         $this->_state['use_alpha'] = $use_alpha;
+        
+        if ($use_alpha) {
+            if (count($this->_state['filter']) == 0) {
+                $this->set_filter('regex_match', '^A');
+            }
+        } else {
+            $this->set_filter('regex_not_match', '');
+        }
     }
 
     /**
@@ -530,5 +573,17 @@ class Browse extends Query
     {
         return $this->_state['threshold'];
     }
+    
+    /**
+     *
+     * @return string
+     */
+    public function get_css_class()
+    {
+        $css = '';
+        if (!$this->_state['grid_view']) {
+            $css = 'disablegv';
+        }
+        return $css;
+    }
 } // browse
-

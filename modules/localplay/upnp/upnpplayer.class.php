@@ -1,21 +1,21 @@
 <?php 
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -44,7 +44,7 @@ class UPnPPlayer
      */
     private function Device()
     {
-        if (is_null($this->_device)) {
+        if ($this->_device === null) {
             $this->_device = new UPnPDevice($this->_description_url);
         }
         return $this->_device;
@@ -56,7 +56,7 @@ class UPnPPlayer
      */
     private function Playlist()
     {
-        if (is_null($this->_playlist)) {
+        if ($this->_playlist === null) {
             $this->_playlist = new UPnPPlaylist($this->_description_url);
         }
         return $this->_playlist;
@@ -367,7 +367,7 @@ class UPnPPlayer
         $this->_intState = $state;
 
         $sid  = 'upnp_ply_' . $this->_description_url;
-        $data = serialize($this->_intState);
+        $data = json_encode($this->_intState);
         if (! Session::exists('api', $sid)) {
             Session::create(array('type' => 'api', 'sid' => $sid, 'value' => $data ));
         } else {
@@ -381,7 +381,7 @@ class UPnPPlayer
         $sid  = 'upnp_ply_' . $this->_description_url;
         $data = Session::read($sid);
 
-        $this->_intState = unserialize($data);
+        $this->_intState = json_decode($data, true);
         debug_event('upnpPlayer', 'ReadIndState:' . $this->_intState, 5);
     }
 } // End UPnPPlayer Class

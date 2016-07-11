@@ -2,21 +2,21 @@
 /* vim:set softtabstop=4 shiftwidth=4 expandtab: */
 /**
  *
- * LICENSE: GNU General Public License, version 2 (GPLv2)
+ * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
  * Copyright 2001 - 2015 Ampache.org
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License v2
- * as published by the Free Software Foundation.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * GNU Affero General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -77,7 +77,7 @@ if (empty($_REQUEST['step'])) {
                 exit();
             } else {
                 debug_event('Login', scrub_out($username) . ' From ' . $_SERVER['REMOTE_ADDR'] . ' attempted to login and failed', '1');
-                Error::add('general', T_('Error Username or Password incorrect, please try again'));
+                AmpError::add('general', T_('Error Username or Password incorrect, please try again'));
             }
         }
     }
@@ -88,7 +88,7 @@ if (empty($_REQUEST['step'])) {
         $username = $auth['username'];
     } else {
         debug_event('Login', 'Second step authentication failed', '1');
-        Error::add('general', $auth['error']);
+        AmpError::add('general', $auth['error']);
     }
 }
 
@@ -97,7 +97,7 @@ if (!empty($username) && isset($auth)) {
 
     if ($user->disabled) {
         $auth['success'] = false;
-        Error::add('general', T_('User Disabled please contact Admin'));
+        AmpError::add('general', T_('User Disabled please contact Admin'));
         debug_event('Login', scrub_out($username) . ' is disabled and attempted to login', '1');
     } // if user disabled
     elseif (AmpConfig::get('prevent_multiple_logins')) {
@@ -105,28 +105,30 @@ if (!empty($username) && isset($auth)) {
         $current_ip = inet_pton($_SERVER['REMOTE_ADDR']);
         if ($current_ip && ($current_ip != $session_ip)) {
             $auth['success'] = false;
-            Error::add('general', T_('User Already Logged in'));
+            AmpError::add('general', T_('User Already Logged in'));
             debug_event('Login', scrub_out($username) . ' is already logged in from ' . $session_ip . ' and attempted to login from ' . $current_ip, '1');
         } // if logged in multiple times
     } // if prevent multiple logins
-    elseif (AmpConfig::get('auto_create') && $auth['success'] &&
-        ! $user->username) {
+    elseif (AmpConfig::get('auto_create') && $auth['success'] && ! $user->username) {
         /* This is run if we want to autocreate users who don't
         exist (useful for non-mysql auth) */
-        $access    = AmpConfig::get('auto_user')
-            ? User::access_name_to_level(AmpConfig::get('auto_user'))
-            : '5';
-        $name       = $auth['name'];
-        $email      = $auth['email'];
-        $website    = $auth['website'];
+        $access     = User::access_name_to_level(AmpConfig::get('auto_user', 'guest'));
+        $fullname   = array_key_exists('name',    $auth) ? $auth['name']    : '';
+        $email      = array_key_exists('email',   $auth) ? $auth['email']   : '';
+        $website    = array_key_exists('website', $auth) ? $auth['website'] : '';
+        $state      = array_key_exists('state',   $auth) ? $auth['state']   : '';
+        $city       = array_key_exists('city',    $auth) ? $auth['city']    : '';
 
         /* Attempt to create the user */
-        if (User::create($username, $name, $email, $website,
-            hash('sha256', mt_rand()), $access)) {
+        if (User::create($username, $name, $email, $website, hash('sha256', mt_rand()), $access, $state, $city)) {
             $user = User::get_from_username($username);
+
+            if (array_key_exists('avatar', $auth)) {
+                $user->update_avatar($auth['avatar']['data'], $auth['avatar']['mime']);
+            }
         } else {
             $auth['success'] = false;
-            Error::add('general', T_('Unable to create local account'));
+            AmpError::add('general', T_('Unable to create local account'));
         }
     } // End if auto_create
 
@@ -147,6 +149,10 @@ if (isset($auth) && $auth['success'] && isset($user)) {
     //   but naming this 'user' didn't work at all
     $_SESSION['userdata'] = $auth;
 
+    // You really don't want to store the avatar
+    //   in the SESSION.
+    unset($_SESSION['userdata']['avatar']);
+    
     // Record the IP of this person!
     if (AmpConfig::get('track_user_ip')) {
         $user->insert_ip_history();
@@ -159,15 +165,26 @@ if (isset($auth) && $auth['success'] && isset($user)) {
         }
     }
 
-    // Update data from this auth if ours are empty
-    if (empty($user->fullname) && !empty($auth['name'])) {
+    // Update data from this auth if ours are empty or if config asks us to
+    $external_auto_update = AmpConfig::get('external_auto_update', false);
+
+    if (($external_auto_update || empty($user->fullname)) && !empty($auth['name'])) {
         $user->update_fullname($auth['name']);
     }
-    if (empty($user->email) && !empty($auth['email'])) {
+    if (($external_auto_update || empty($user->email))    && !empty($auth['email'])) {
         $user->update_email($auth['email']);
     }
-    if (empty($user->website) && !empty($auth['website'])) {
+    if (($external_auto_update || empty($user->website))  && !empty($auth['website'])) {
         $user->update_website($auth['website']);
+    }
+    if (($external_auto_update || empty($user->state))    && !empty($auth['state'])) {
+        $user->update_state($auth['state']);
+    }
+    if (($external_auto_update || empty($user->city))     && !empty($auth['city'])) {
+        $user->update_city($auth['city']);
+    }
+    if (($external_auto_update || empty($user->f_avatar)) && !empty($auth['avatar'])) {
+        $user->update_avatar($auth['avatar']['data'], $auth['avatar']['mime']);
     }
 
     $GLOBALS['user'] = $user;
@@ -193,4 +210,3 @@ if (isset($auth) && $auth['success'] && isset($user)) {
     header('Location: ' . AmpConfig::get('web_path') . '/index.php');
     exit();
 } // auth success
-
