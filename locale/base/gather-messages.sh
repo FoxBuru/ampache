@@ -2,7 +2,7 @@
 #
 # vim:set softtabstop=4 shiftwidth=4 expandtab:
 #
-# Copyright 2001 - 2015 Ampache.org
+# Copyright 2001 - 2016 Ampache.org
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License v2
@@ -65,7 +65,7 @@ generate_pot() {
                 --add-comment=HINT: \
                 --msgid-bugs-address="https://www.transifex.com/projects/p/ampache/" \
                 -L php \
-                --keyword=gettext_noop --keyword=T_ --keyword=nT_ \
+                --keyword=gettext_noop --keyword=T_ --keyword=nT_:1,2 \
                 -o $potfile \
                 $(find ../../ -type f -name \*.php -o -name \*.inc | sort)
     if [[ $? -eq 0 ]]; then
@@ -86,7 +86,7 @@ generate_pot_utds() {
                 --add-comment=HINT: \
                 --msgid-bugs-address="https://www.transifex.com/projects/p/ampache/" \
                 -L php \
-                --keyword=gettext_noop --keyword=T_ --keyword=nT_ \
+                --keyword=gettext_noop --keyword=T_ --keyword=nT_:1,2 \
                 -o $potfile \
                 $(find ../../ -type f -name \*.php -o -name \*.inc | sort)
     if [[ $? -eq 0 ]]; then
@@ -172,7 +172,7 @@ generate_pot_utds() {
                 "\n\n"\
                 "#######################################################################" >> $tdstxt
 
-        mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT id FROM preference" | 
+        mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT id FROM preference" |
         while read dbprefid; do
             dbprefdesc=$(mysql -N --database=$dbname --host=$dbhost --user=$dbuser --password=$dbpass -se "SELECT description FROM preference where id=$dbprefid")
             dbprefdescchk=$(grep "\"$dbprefdesc\"" $potfile)

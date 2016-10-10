@@ -3,7 +3,7 @@
 /**
  *
  * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
- * Copyright 2001 - 2015 Ampache.org
+ * Copyright 2001 - 2016 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -41,20 +41,15 @@ $web_path = AmpConfig::get('web_path');
                 <?php if (User::is_registered()) {
     ?>
                     <?php if (AmpConfig::get('ratings')) {
-    ;
-    ?>
-                        <th class="cel_rating optional"><?php echo T_('Rating');
-    ?></th>
+    ; ?>
+                        <th class="cel_rating optional"><?php echo T_('Rating'); ?></th>
                     <?php 
-}
-    ?>
+} ?>
                     <?php if (AmpConfig::get('userflags')) {
     ?>
                 <?php 
-}
-    ?>
-                <th class="cel_userflag optional"><?php echo T_('Fav.');
-    ?></th>
+} ?>
+                <th class="cel_userflag optional"><?php echo T_('Fav.'); ?></th>
             <?php 
 } ?>
                 <th class="cel_action essential"><?php echo T_('Action'); ?></th>
@@ -70,11 +65,9 @@ $web_path = AmpConfig::get('web_path');
     if (Core::is_library_item($object_type)) {
         $libitem = new $object_type($object['object_id']);
         $libitem->format();
-        $playlist_track = $object['track'];
-        ?>
+        $playlist_track = $object['track']; ?>
         <tr class="<?php echo UI::flip_class() ?>" id="track_<?php echo $object['track_id'] ?>">
-            <?php require AmpConfig::get('prefix') . UI::find_template('show_playlist_media_row.inc.php');
-        ?>
+            <?php require AmpConfig::get('prefix') . UI::find_template('show_playlist_media_row.inc.php'); ?>
         </tr>
         <?php
 
@@ -96,18 +89,14 @@ $web_path = AmpConfig::get('web_path');
     ?>
                     <?php if (AmpConfig::get('ratings')) {
     ?>
-                        <th class="cel_rating"><?php echo T_('Rating');
-    ?></th>
+                        <th class="cel_rating"><?php echo T_('Rating'); ?></th>
                     <?php 
-}
-    ?>
+} ?>
                     <?php if (AmpConfig::get('userflags')) {
     ?>
-                        <th class="cel_userflag"><?php echo T_('Fav.');
-    ?></th>
+                        <th class="cel_userflag"><?php echo T_('Fav.'); ?></th>
                     <?php 
-}
-    ?>
+} ?>
                 <?php 
 } ?>
                 <th class="cel_action"><?php echo T_('Action'); ?></th>

@@ -4,7 +4,7 @@
 /**
  *
  * LICENSE: GNU Affero General Public License, version 3 (AGPLv3)
- * Copyright 2001 - 2015 Ampache.org
+ * Copyright 2001 - 2016 Ampache.org
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -464,6 +464,9 @@ class Daap_Api
                     case 'daap.songartist':
                         $o .= self::tlv($m, $song->f_artist);
                         break;
+                    case 'daap.songcomposer':
+                        $o .= self::tlv($m, $song->f_composer);
+                        break;
                     case 'daap.songbitrate':
                         $o .= self::tlv($m, intval($song->bitrate / 1000));
                         break;
@@ -684,6 +687,7 @@ class Daap_Api
         self::add_dict('adbs', 'list', 'daap.databasesongs'); // response to a /databases/id/items
         self::add_dict('asal', 'string', 'daap.songalbum');
         self::add_dict('asar', 'string', 'daap.songartist');
+        self::add_dict('ascp', 'string', 'daap.songcomposer');
         self::add_dict('asbt', 'short', 'daap.songsbeatsperminute');
         self::add_dict('asbr', 'short', 'daap.songbitrate');
         self::add_dict('ascm', 'string', 'daap.songcomment');
