@@ -635,11 +635,10 @@ if ($transcode && isset($transcoder)) {
     // We don't want to wait indefinitly for a potential error so we just ignore it.
     if (strtoupper(substr(PHP_OS, 0, 3)) !== 'WIN') {
         // This to avoid hang, see http://php.net/manual/es/function.proc-open.php#89338
-        $transcode_error = fread($transcoder['stderr'], 4096);
+	$transcode_error = stream_get_contents($transcoder['stderr']);
         if (!empty($transcode_error)) {
             debug_event('play', 'Transcode stderr: ' . $transcode_error, 1);
         }
-        fclose($transcoder['stderr']);
     }
 };
 
@@ -677,9 +676,9 @@ if ($status === false) {
                 if (!empty($buf)) {
                     print($buf);
                     if (ob_get_length()) {
+                        ob_end_flush();
                         ob_flush();
                         flush();
-                        ob_end_flush();
                     }
                     ob_start();
                 }
@@ -703,6 +702,12 @@ if ($bytes_streamed < $stream_size && (connection_status() == 0)) {
 }
 
 if ($transcode && isset($transcoder)) {
+    $transcode_error = stream_get_contents($transcoder['stderr']);
+    if (!empty($transcode_error)) {
+        debug_event('play', 'Last Transcode stderr: ' . $transcode_error, 1);
+    }
+    fclose($transcoder['stderr']);
+
     fclose($fp);
 
     Stream::kill_process($transcoder);
